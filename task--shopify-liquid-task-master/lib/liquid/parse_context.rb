@@ -3,14 +3,14 @@
 module Liquid
   class ParseContext
     attr_accessor :locale, :line_number, :trim_whitespace, :depth
-    attr_reader :partial, :warnings, :error_mode, :environment, :expression_cache, :string_scanner, :cursor
+    attr_reader :partial, :error_mode, :environment, :expression_cache, :string_scanner, :cursor
 
     def initialize(options = Const::EMPTY_HASH)
       @environment = options.fetch(:environment, Environment.default)
       @template_options = options ? options.dup : {}
 
       @locale   = @template_options[:locale] ||= I18n.new
-      @warnings = []
+      @warnings = nil  # lazy
 
       # constructing new StringScanner in Lexer, Tokenizer, etc is expensive
       # This StringScanner will be shared by all of them
@@ -31,6 +31,15 @@ module Liquid
 
       self.depth   = 0
       self.partial = false
+    end
+
+    def warnings
+      @warnings ||= []
+    end
+
+    # Returns warning count without forcing array allocation
+    def warnings_size
+      @warnings ? @warnings.size : 0
     end
 
     def [](option_key)
