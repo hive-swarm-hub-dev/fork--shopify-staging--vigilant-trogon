@@ -14,7 +14,7 @@ module Liquid
   #
   #   context['bob']  #=> nil  class Context
   class Context
-    attr_reader :scopes, :errors, :registers, :environments, :resource_limits, :static_registers, :static_environments
+    attr_reader :scopes, :registers, :environments, :resource_limits, :static_registers, :static_environments
     attr_accessor :exception_renderer, :template_name, :partial, :global_filter, :strict_variables, :strict_filters, :environment
 
     # rubocop:disable Metrics/ParameterLists
@@ -35,7 +35,7 @@ module Liquid
       end
       @scopes              = [outer_scope || {}]
       @registers           = registers.is_a?(Registers) ? registers : Registers.new(registers)
-      @errors              = []
+      @errors              = nil  # lazy — allocated on first error
       @partial             = false
       @strict_variables    = false
       @resource_limits     = resource_limits || ResourceLimits.new(environment.default_resource_limits)
@@ -63,6 +63,10 @@ module Liquid
       squash_instance_assigns_with_environments
     end
     # rubocop:enable Metrics/ParameterLists
+
+    def errors
+      @errors ||= []
+    end
 
     def warnings
       @warnings ||= []
@@ -216,7 +220,12 @@ module Liquid
     end
 
     def evaluate(object)
-      object.respond_to?(:evaluate) ? object.evaluate(self) : object
+      case object
+      when String, Integer, Float, NilClass, TrueClass, FalseClass
+        object
+      else
+        object.respond_to?(:evaluate) ? object.evaluate(self) : object
+      end
     end
 
     # Fetches an object starting at the local scope and then moving up the hierachy
@@ -229,11 +238,19 @@ module Liquid
         # Only one scope and key not found — go straight to environments
         variable = try_variable_find_in_environments(key, raise_on_not_found: raise_on_not_found)
       else
-        # Multiple scopes — search through all of them
-        index = @scopes.find_index { |s| s.key?(key) }
+        found_scope = nil
+        i = 1
+        while i < @scopes.length
+          s = @scopes[i]
+          if s.key?(key)
+            found_scope = s
+            break
+          end
+          i += 1
+        end
 
-        variable = if index
-          lookup_and_evaluate(@scopes[index], key, raise_on_not_found: raise_on_not_found)
+        variable = if found_scope
+          lookup_and_evaluate(found_scope, key, raise_on_not_found: raise_on_not_found)
         else
           try_variable_find_in_environments(key, raise_on_not_found: raise_on_not_found)
         end
