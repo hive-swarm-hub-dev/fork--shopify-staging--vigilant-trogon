@@ -196,7 +196,7 @@ module Liquid
       rescue Liquid::MemoryError => e
         context.handle_error(e)
       ensure
-        @errors = context.errors
+        @errors = context.instance_variable_get(:@errors) || Const::EMPTY_ARRAY
       end
     end
 
