@@ -436,13 +436,17 @@ module Liquid
     end
 
     def render_to_output_buffer(context, output)
-      # Fast path: no filters and no global filter
       obj = if @filters.empty? && context.global_filter.nil?
         context.evaluate(@name)
       else
         render(context)
       end
-      render_obj_to_output(obj, output)
+      # Inline String/nil (most common) to skip render_obj_to_output dispatch
+      if obj.instance_of?(String)
+        output << obj
+      elsif !obj.nil?
+        render_obj_to_output(obj, output)
+      end
       output
     end
 
