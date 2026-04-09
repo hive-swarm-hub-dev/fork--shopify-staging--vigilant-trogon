@@ -234,7 +234,12 @@ module Liquid
     end
 
     def evaluate(object)
-      object.respond_to?(:evaluate) ? object.evaluate(self) : object
+      case object
+      when String, Integer, Float, NilClass, TrueClass, FalseClass
+        object
+      else
+        object.respond_to?(:evaluate) ? object.evaluate(self) : object
+      end
     end
 
     # Fetches an object starting at the local scope and then moving up the hierachy
