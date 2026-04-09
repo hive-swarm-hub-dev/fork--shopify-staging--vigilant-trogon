@@ -256,12 +256,24 @@ module Liquid
       # Check if we need per-node write score tracking
       check_write = resource_limits.render_length_limit || resource_limits.last_capture_length
 
+      # When profiling is active, use render_node for profiler hooks.
+      # Otherwise inline the dispatch to avoid double method dispatch.
+      use_profiler = context.respond_to?(:profiler) && context.profiler
+
       idx = 0
       while (node = @nodelist[idx])
         if node.instance_of?(String)
           output << node
-        else
+        elsif use_profiler
           render_node(context, output, node)
+          break if context.interrupt?
+        else
+          begin
+            node.render_to_output_buffer(context, output)
+          rescue => exc
+            blank_tag = !node.instance_of?(Variable) && node.blank?
+            BlockBody.rescue_render_node(context, output, node.line_number, exc, blank_tag)
+          end
           break if context.interrupt?
         end
         idx += 1
