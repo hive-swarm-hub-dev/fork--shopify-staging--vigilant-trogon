@@ -14,7 +14,7 @@ module Liquid
   #
   #   context['bob']  #=> nil  class Context
   class Context
-    attr_reader :scopes, :errors, :registers, :environments, :resource_limits, :static_registers, :static_environments
+    attr_reader :scopes, :registers, :environments, :resource_limits, :static_registers, :static_environments
     attr_accessor :exception_renderer, :template_name, :partial, :global_filter, :strict_variables, :strict_filters, :environment
 
     # rubocop:disable Metrics/ParameterLists
@@ -35,7 +35,7 @@ module Liquid
       end
       @scopes              = [outer_scope || {}]
       @registers           = registers.is_a?(Registers) ? registers : Registers.new(registers)
-      @errors              = []
+      @errors              = nil  # lazy — allocated on first error
       @partial             = false
       @strict_variables    = false
       @resource_limits     = resource_limits || ResourceLimits.new(environment.default_resource_limits)
@@ -63,6 +63,10 @@ module Liquid
       squash_instance_assigns_with_environments
     end
     # rubocop:enable Metrics/ParameterLists
+
+    def errors
+      @errors ||= []
+    end
 
     def warnings
       @warnings ||= []
