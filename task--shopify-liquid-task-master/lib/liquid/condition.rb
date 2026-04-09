@@ -186,6 +186,16 @@ module Liquid
       left  = Liquid::Utils.to_liquid_value(context.evaluate(left))
       right = Liquid::Utils.to_liquid_value(context.evaluate(right))
 
+      # Fast path for == (most common operator): skip operator lookup,
+      # lambda dispatch, and equal_variables overhead for primitive comparisons
+      if op == '=='
+        return left == right unless left.is_a?(MethodLiteral) || right.is_a?(MethodLiteral)
+        return equal_variables(left, right)
+      elsif op == '!=' || op == '<>'
+        return left != right unless left.is_a?(MethodLiteral) || right.is_a?(MethodLiteral)
+        return !equal_variables(left, right)
+      end
+
       operation = self.class.operators[op] || raise(Liquid::ArgumentError, "Unknown operator #{op}")
 
       if operation.respond_to?(:call)
