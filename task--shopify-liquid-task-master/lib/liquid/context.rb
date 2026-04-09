@@ -237,6 +237,8 @@ module Liquid
       case object
       when String, Integer, Float, NilClass, TrueClass, FalseClass
         object
+      when VariableLookup
+        object.evaluate(self)
       else
         object.respond_to?(:evaluate) ? object.evaluate(self) : object
       end
