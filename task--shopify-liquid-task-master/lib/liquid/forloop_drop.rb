@@ -80,8 +80,7 @@ module Liquid
       @index == @length - 1
     end
 
-    protected
-
+    # Public to allow direct call from For#render_segment, avoiding send() overhead.
     def increment!
       @index += 1
     end
